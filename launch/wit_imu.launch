@@ -1,0 +1,10 @@
+<launch>
+    <!-- imu python node -->
+    <node pkg="wit_ros_imu" type="wit_normal_ros.py" name="imu" output="screen">
+        <param name="port" type="str" value="/dev/imu_usb"/>
+        <param name="baud" type="int" value="9600"/>
+        <remap from="/wit/imu" to="/imu_raw"/>
+        <remap from="/wit/mag" to="/mag_raw"/>
+    </node>
+
+</launch>   

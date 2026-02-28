@@ -11,14 +11,11 @@ from sensor_msgs.msg import MagneticField
 from tf.transformations import quaternion_from_euler
 
 
-
 def checkSum(list_data, check_data):
     return sum(list_data) & 0xff == check_data
 
-
 def hex_to_short(raw_data):
     return list(struct.unpack("hhhh", bytearray(raw_data)))
-
 
 # Parsing serial Port Data
 def handleSerialData(raw_data):
@@ -47,7 +44,6 @@ def handleSerialData(raw_data):
         elif buff[1] == 0x52:
             if checkSum(data_buff[0:10], data_buff[10]):
                 angularVelocity = [hex_to_short(data_buff[2:10])[i] / 32768.0 * 2000 * math.pi / 180 for i in range(0, 3)]
-
             else:
                 print('0x52 Check failure')
 
@@ -72,10 +68,10 @@ def handleSerialData(raw_data):
             stamp = rospy.get_rostime()
 
             imu_msg.header.stamp = stamp
-            imu_msg.header.frame_id = "base_link"
+            imu_msg.header.frame_id = "imu_link"
 
             mag_msg.header.stamp = stamp
-            mag_msg.header.frame_id = "base_link"
+            mag_msg.header.frame_id = "mag_link"
 
             angle_radian = [angle_degree[i] * math.pi / 180 for i in range(3)]
             qua = quaternion_from_euler(angle_radian[0], angle_radian[1], angle_radian[2])
@@ -100,7 +96,6 @@ def handleSerialData(raw_data):
             imu_pub.publish(imu_msg)
             mag_pub.publish(mag_msg)
 
-
 key = 0
 flag = 0
 buff = {}
@@ -118,6 +113,9 @@ if __name__ == "__main__":
     baudrate = rospy.get_param("~baud", 9600)
     print("IMU Type: Normal Port:%s baud:%d" %(port,baudrate))
     imu_msg = Imu()
+    imu_msg.orientation_covariance = [1e6,0,0, 0,1e6,0, 0,0,1e-6]
+    imu_msg.angular_velocity_covariance = [1e6,0,0, 0,1e6,0, 0,0,1e-6]
+    imu_msg.linear_acceleration_covariance = [-1,0,0, 0,0,0, 0,0,0]
     mag_msg = MagneticField()
     try:
         wt_imu = serial.Serial(port=port, baudrate=baudrate, timeout=0.5)
@@ -131,8 +129,8 @@ if __name__ == "__main__":
         rospy.loginfo("\033[31mSerial port opening failure\033[0m")
         exit(0)
     else:
-        imu_pub = rospy.Publisher("wit/imu", Imu, queue_size=10)
-        mag_pub = rospy.Publisher("wit/mag", MagneticField, queue_size=10)
+        imu_pub = rospy.Publisher("wit/imu", Imu, queue_size=1)
+        mag_pub = rospy.Publisher("wit/mag", MagneticField, queue_size=1)
 
         while not rospy.is_shutdown():
             try:
